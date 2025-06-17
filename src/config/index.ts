@@ -2,14 +2,8 @@ import { configDotenv } from "dotenv";
 
 configDotenv();
 
-const PORT = process.env.PORT || "5000";
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const MONGODB_URI = process.env.MONGODB_URI;
-const EMAIL = process.env.ACCOUNT_EMAIL;
-const PASSWORD = process.env.UPWORK_PASSWORD;
-const ADMIN_ID = process.env.ADMIN_ID;
-const SUPPORT = process.env.SUPPORT;
-const SOURCE_URL = process.env.GITHUB_URL || "";
 
 let config_missing = false;
 
@@ -23,49 +17,30 @@ if (!MONGODB_URI) {
   config_missing = true;
 }
 
-if (!EMAIL) {
-  console.error("Missing EMAIL");
-  config_missing = true;
-}
-
-if (!PASSWORD) {
-  console.error("Missing PASSWORD");
-  config_missing = true;
-}
-
-if (!ADMIN_ID) {
-  console.error("Missing ADMIN_ID");
-  config_missing = true;
-}
-if (!SUPPORT) {
-  console.error("Missing SUPPORT");
-  config_missing = true;
-}
-
 if (config_missing) {
   process.exit(1);
 }
 
+
+const commands = {
+  START_BOOK_KEEPING: ["Start bookkeeping", "开始记账"],
+  SET_RATE: ["Set rate", "设置汇率"],
+  SET_OPERATOR: ["Set operator", "设置操作人"],
+  DELETE_OPERATOR: ["Delete operator", "删除操作人"],
+  DISPLAY_OPERATOR: ["Display operators", "显示操作人"],
+  DISPLAY_BILL: ["Display bill", "显示账单"],
+  CLEAR_BILL: ["Clear bill", "清除账单"],
+};
 interface Config {
-  PORT: number;
   BOT_TOKEN: string;
   MONGODB_URI: string;
-  EMAIL: string;
-  PASSWORD: string;
-  ADMIN_ID: string;
-  SUPPORT: string;
-  SOURCE_URL: string;
+  COMMANDS: typeof commands;
 }
 
 const config: Config = {
-  PORT: Number(PORT),
   BOT_TOKEN: BOT_TOKEN!,
   MONGODB_URI: MONGODB_URI!,
-  EMAIL: EMAIL!,
-  PASSWORD: PASSWORD!,
-  ADMIN_ID: ADMIN_ID!,
-  SUPPORT: SUPPORT!,
-  SOURCE_URL: SOURCE_URL!,
+  COMMANDS: commands
 };
 
 export default config;

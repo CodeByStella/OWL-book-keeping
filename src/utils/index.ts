@@ -1,3 +1,6 @@
+import GroupSession from "@/models/GroupSession";
+import { Context } from "telegraf";
+
 export const delay = async (ms: number) => {
   return new Promise((resolve) => setTimeout(resolve, ms));
 };
@@ -18,6 +21,26 @@ export const isEmpty = (value: any): boolean => {
   }
 
   return false;
+};
+
+export const isOperator = async (ctx: Context) => {
+  try {
+    const username = ctx.from?.username;
+    const groupId = ctx.chat?.id?.toString();
+    if (!username || !groupId) return null;
+
+    const session = await GroupSession.findOne({
+      groupId,
+      operators: { $in: [username] }
+    });
+    if (!session) {
+      ctx.reply("Only operators can start bookkeeping. 仅限操作员使用。");
+    }
+    return session || null;
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
 };
 
 export function getRndId(): string {

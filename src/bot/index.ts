@@ -1,13 +1,24 @@
 import config from "@/config";
-import { Markup, Telegraf } from "telegraf";
-import setup_commands from "./commands";
-import setup_scenes from "./scene";
+import { Context, Markup, Telegraf } from "telegraf";
 import { isEmpty } from "@/utils";
+import groupHandler from "./handlers/groupHandler";
+import bookkeepingHandler from "./handlers/bookkeepingHandler";
 
 const bot = new Telegraf(config.BOT_TOKEN);
 
-setup_scenes(bot);
-setup_commands(bot);
+bot.use(groupHandler);
+bot.use(bookkeepingHandler);
+
+bot.start((ctx:Context)=>{
+  try {
+    ctx.reply(
+      "👋 *Welcome to OwlBookKeepingBot!*\n\nTo get started, please add me to your group. I’ll help you manage your group’s bookkeeping tasks easily.\n\n👋 *欢迎使用 OwlBookKeepingBot！*\n\n请将我添加到您的群组，我将帮助您轻松管理群组的记账任务。",
+      { parse_mode: 'Markdown' }
+    );
+  } catch (error) {
+    console.error("Error in /start handler:", error);
+  }
+})
 
 export const sendMessage = async (
   chatId: string,
@@ -39,7 +50,7 @@ export const launchBot = async () => {
       });
     });
   } catch (error: any) {
-    console.error("Error launching bot:", error.message);
+    console.error("Error launching bot:", error.message);                
     throw error;
   }
 };
