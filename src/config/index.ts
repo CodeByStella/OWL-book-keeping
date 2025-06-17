@@ -23,8 +23,11 @@ if (config_missing) {
 
 
 const commands = {
+  SET_CHINESE: ["Set Language Chinese", "设置语言为中文"],
+  SET_ENGLISH: ["Set Language English", "设置语言为英文"],
   START_BOOK_KEEPING: ["Start bookkeeping", "开始记账"],
   SET_RATE: ["Set rate", "设置汇率"],
+  SET_FEE: ["Set fee", "设置费用"],
   SET_OPERATOR: ["Set operator", "设置操作人"],
   DELETE_OPERATOR: ["Delete operator", "删除操作人"],
   DISPLAY_OPERATOR: ["Display operators", "显示操作人"],

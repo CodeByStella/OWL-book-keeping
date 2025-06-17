@@ -6,6 +6,7 @@ const bot = new Composer();
 
 function formatSummary(session: any): string {
   const rate = session.rate || 1;
+  const fee = session.fee || 0;
   const funds: number[] = Array.isArray(session.funds) ? session.funds : [];
   const usdt: number[] = Array.isArray(session.usdt) ? session.usdt : [];
 
@@ -15,7 +16,7 @@ function formatSummary(session: any): string {
   const fundSummary = funds
     .map(
       (amount: number, i: number) =>
-        `(${i + 1}) ${amount} / ${rate.toFixed(2)} = ${(amount / rate).toFixed(2)}`,
+        `(${i + 1}) ${amount} / ${rate.toFixed(2)} = ${((amount * (1 - fee/100)) / rate).toFixed(2)}`,
     )
     .join("\n");
 
@@ -26,27 +27,11 @@ function formatSummary(session: any): string {
     )
     .join("\n");
 
-  const payableU = (totalFunds / rate).toFixed(2);
-  const unpaidU = (totalUSDT - totalFunds / rate).toFixed(2);
+  const payableU = ((totalFunds * (1 - fee/100)) / rate).toFixed(2);
+  const unpaidU = (((totalFunds * (1 - fee/100)) - totalUSDT / rate)).toFixed(2);
 
-  return `
-*Bookkeeping Success!*
--------------------
-Funds (${funds.length} orders)
-${fundSummary}
-*Total: ${totalFunds.toFixed(2)}*
--------------------
-USDT (${usdt.length} orders)
-${usdtSummary}
-*Total: ${totalUSDT.toFixed(2)} USDT*
--------------------
-Rate: ${rate.toFixed(2)}
--------------------
-Payable: ${totalFunds.toFixed(2)} | ${payableU} U
-Paid: ${(totalUSDT * rate).toFixed(2)} | ${totalUSDT.toFixed(2)} U
-Unpaid: ${(parseFloat(unpaidU) * rate).toFixed(2)} | ${unpaidU} U
-
-
+  if (session.language === "zh") {
+    return `
 *记账成功！*
 -------------------
 资金（${funds.length} 笔）
@@ -58,14 +43,38 @@ ${usdtSummary}
 *合计: ${totalUSDT.toFixed(2)} USDT*
 -------------------
 汇率: ${rate.toFixed(2)}
+费用: ${fee.toFixed(2)}
 -------------------
 应付: ${totalFunds.toFixed(2)} | ${payableU} U
 已付: ${(totalUSDT * rate).toFixed(2)} | ${totalUSDT.toFixed(2)} U
-未付: ${(parseFloat(unpaidU) * rate).toFixed(2)} | ${unpaidU} U
+未付: ${((totalFunds * (1 - fee/100)) - totalUSDT).toFixed(2)} | ${unpaidU} U
 `.trim();
+  } else {
+    return `
+*Bookkeeping Success!*
+-------------------
+Funds (${funds.length} orders)
+${fundSummary}
+*Total: ${totalFunds.toFixed(2)}*
+-------------------
+USDT (${usdt.length} orders)
+${usdtSummary}
+*Total: ${totalUSDT.toFixed(2)} USDT*
+-------------------
+Rate: ${rate.toFixed(2)}
+Fee: ${fee.toFixed(2)}
+-------------------
+Payable: ${totalFunds.toFixed(2)} | ${payableU} U
+Paid: ${(totalUSDT * rate).toFixed(2)} | ${totalUSDT.toFixed(2)} U
+Unpaid: ${((totalFunds * (1 - fee/100)) - totalUSDT).toFixed(2)} | ${unpaidU} U
+`.trim();
+  }
 }
 
 const {
+  SET_CHINESE,
+  SET_ENGLISH,
+  SET_FEE,
   START_BOOK_KEEPING,
   SET_RATE,
   SET_OPERATOR,
@@ -75,42 +84,81 @@ const {
   CLEAR_BILL,
 } = config.COMMANDS;
 
+
 //start bookkeeping
 bot.hears(START_BOOK_KEEPING, async (ctx) => {
   const session = await isOperator(ctx);
   if (!session) return;
 
-  ctx.reply(
-    `*Bookkeeping started! 记账已开始！*
+  const language = session.language;
 
-Available commands
+  if (language === "zh") {
+    ctx.reply(
+      `*记账已开始！*
+
+可用命令
 ----------------------------------------
-${START_BOOK_KEEPING[0]}
-F+ Record funds income
-F- Record funds expense
-U+ Record USDT income
-U- Record USDT expense
-${SET_RATE[0]}+(0.00）
-${SET_OPERATOR[0]}+@xxx
-${DELETE_OPERATOR[0]}+@xxx
-${DISPLAY_OPERATOR[0]}
-${DISPLAY_BILL[0]}
-${CLEAR_BILL[0]}
-
 ${START_BOOK_KEEPING[1]}
+${SET_ENGLISH[1]}
 F+ 记录资金收入
 F- 记录资金支出
 U+ 记录 USDT 收入
 U- 记录 USDT 支出
 ${SET_RATE[1]}+(0.00）
+${SET_FEE[1]}+(0.00）
 ${SET_OPERATOR[1]}+@xxx
 ${DELETE_OPERATOR[1]}+@xxx
 ${DISPLAY_OPERATOR[1]}
 ${DISPLAY_BILL[1]}
 ${CLEAR_BILL[1]}
 `,
-    { parse_mode: "Markdown" },
-  );
+      { parse_mode: "Markdown" },
+    );
+  } else {
+    ctx.reply(
+      `*Bookkeeping started!*
+
+Available commands
+----------------------------------------
+${START_BOOK_KEEPING[0]}
+${SET_CHINESE[0]}
+F+ Record funds income
+F- Record funds expense
+U+ Record USDT income
+U- Record USDT expense
+${SET_RATE[0]}+(0.00）
+${SET_FEE[0]}+(0.00）
+${SET_OPERATOR[0]}+@xxx
+${DELETE_OPERATOR[0]}+@xxx
+${DISPLAY_OPERATOR[0]}
+${DISPLAY_BILL[0]}
+${CLEAR_BILL[0]}
+`,
+      { parse_mode: "Markdown" },
+    );
+  }
+});
+
+bot.hears(SET_CHINESE, async (ctx) => {
+  const session = await isOperator(ctx);
+  if (!session) return;
+
+  // Toggle language between 'en' and 'zh'
+  session.language = "zh";
+  await session.save?.();
+
+  ctx.reply("语言已切换为中文。");
+});
+
+bot.hears(SET_ENGLISH, async (ctx) => {
+  const session = await isOperator(ctx);
+  if (!session) return;
+
+  // Toggle language between 'en' and 'zh'
+  session.language = "en";
+  await session.save?.();
+
+  ctx.reply("Language switched to English.");
 });
 
 // Set rate command: e.g. Set rate+123 or 设置汇率+123
@@ -120,21 +168,70 @@ bot.hears(
     const session = await isOperator(ctx);
     if (!session) return;
 
+    const language = session.language;
+
     const match = ctx.message.text.match(
       new RegExp(`^(${SET_RATE[0]}|${SET_RATE[1]})\\+([\\d.]+)$`, "i"),
     );
     if (!match || !match[2]) {
-      return ctx.reply(
-        `Invalid format. Please use ${SET_RATE[0]}+123 or ${SET_RATE[1]}+123`,
-      );
+      if (language === "zh") {
+        return ctx.reply(`格式错误。请使用 ${SET_RATE[1]}+123`);
+      } else {
+        return ctx.reply(`Invalid format. Please use ${SET_RATE[0]}+123`);
+      }
     }
     const rate = parseFloat(match[2]);
     if (isNaN(rate) || rate <= 0) {
-      return ctx.reply("Invalid rate value. 请输入有效的汇率。");
+      if (language === "zh") {
+        return ctx.reply("无效的汇率值。请输入有效的汇率。");
+      } else {
+        return ctx.reply("Invalid rate value. Please enter a valid rate.");
+      }
     }
     session.rate = rate;
     await session.save();
-    ctx.reply(`Rate set to ${rate}. 汇率已设置为 ${rate}。`);
+    if (language === "zh") {
+      ctx.reply(`汇率已设置为 ${rate}。`);
+    } else {
+      ctx.reply(`Rate set to ${rate}.`);
+    }
+  },
+);
+
+// Set rate command: e.g. Set rate+123 or 设置汇率+123
+bot.hears(
+  new RegExp(`^(${SET_FEE[0]}|${SET_FEE[1]})\\+([\\d.]+)$`, "i"),
+  async (ctx) => {
+    const session = await isOperator(ctx);
+    if (!session) return;
+
+    const language = session.language;
+
+    const match = ctx.message.text.match(
+      new RegExp(`^(${SET_FEE[0]}|${SET_FEE[1]})\\+([\\d.]+)$`, "i"),
+    );
+    if (!match || !match[2]) {
+      if (language === "zh") {
+        return ctx.reply(`格式错误。请使用 ${SET_FEE[1]}+123`);
+      } else {
+        return ctx.reply(`Invalid format. Please use ${SET_FEE[0]}+123`);
+      }
+    }
+    const fee = parseFloat(match[2]);
+    if (isNaN(fee) || fee <= 0) {
+      if (language === "zh") {
+        return ctx.reply("无效的手续费值。请输入有效的手续费。");
+      } else {
+        return ctx.reply("Invalid fee value. Please enter a valid fee.");
+      }
+    }
+    session.fee = fee;
+    await session.save();
+    if (language === "zh") {
+      ctx.reply(`手续费已设置为 ${fee}。`);
+    } else {
+      ctx.reply(`Fee set to ${fee}.`);
+    }
   },
 );
 
@@ -145,14 +242,18 @@ bot.hears(
     const session = await isOperator(ctx);
     if (!session) return;
 
+    const language = session.language;
+
     // Extract username from message
     const match = ctx.message.text.match(
       new RegExp(`^(${SET_OPERATOR[0]}|${SET_OPERATOR[1]})\\+@([\\w_]+)$`, "i"),
     );
     if (!match || !match[2]) {
-      return ctx.reply(
-        `Invalid format. Please use ${SET_OPERATOR[0]}+@username or ${SET_OPERATOR[1]}+@用户名`,
-      );
+      if (language === "zh") {
+        return ctx.reply(`格式错误。请使用 ${SET_OPERATOR[1]}+@用户名`);
+      } else {
+        return ctx.reply(`Invalid format. Please use ${SET_OPERATOR[0]}+@username`);
+      }
     }
     const username = match[2];
 
@@ -160,13 +261,17 @@ bot.hears(
     if (!session.operators.includes(username)) {
       session.operators.push(username);
       await session.save?.();
-      ctx.reply(
-        `Operator @${username} added successfully. 操作员 @${username} 添加成功。`,
-      );
+      if (language === "zh") {
+        ctx.reply(`操作员 @${username} 添加成功。`);
+      } else {
+        ctx.reply(`Operator @${username} added successfully.`);
+      }
     } else {
-      ctx.reply(
-        `Operator @${username} already exists. 操作员 @${username} 已存在。`,
-      );
+      if (language === "zh") {
+        ctx.reply(`操作员 @${username} 已存在。`);
+      } else {
+        ctx.reply(`Operator @${username} already exists.`);
+      }
     }
   },
 );
@@ -181,6 +286,8 @@ bot.hears(
     const session = await isOperator(ctx);
     if (!session) return;
 
+    const language = session.language;
+
     // Extract username from message
     const match = ctx.message.text.match(
       new RegExp(
@@ -189,9 +296,11 @@ bot.hears(
       ),
     );
     if (!match || !match[2]) {
-      return ctx.reply(
-        `Invalid format. Please use ${DELETE_OPERATOR[0]}+@username or ${DELETE_OPERATOR[1]}+@用户名`,
-      );
+      if (language === "zh") {
+        return ctx.reply(`格式错误。请使用 ${DELETE_OPERATOR[1]}+@用户名`);
+      } else {
+        return ctx.reply(`Invalid format. Please use ${DELETE_OPERATOR[0]}+@username`);
+      }
     }
     const username = match[2];
 
@@ -199,13 +308,17 @@ bot.hears(
     if (session.operators.includes(username)) {
       session.operators = session.operators.filter((u) => u !== username);
       await session.save?.();
-      ctx.reply(
-        `Operator @${username} removed successfully. 操作员 @${username} 移除成功。`,
-      );
+      if (language === "zh") {
+        ctx.reply(`操作员 @${username} 移除成功。`);
+      } else {
+        ctx.reply(`Operator @${username} removed successfully.`);
+      }
     } else {
-      ctx.reply(
-        `Operator @${username} does not exist. 操作员 @${username} 不存在。`,
-      );
+      if (language === "zh") {
+        ctx.reply(`操作员 @${username} 不存在。`);
+      } else {
+        ctx.reply(`Operator @${username} does not exist.`);
+      }
     }
   },
 );
@@ -215,16 +328,25 @@ bot.hears(DISPLAY_OPERATOR, async (ctx) => {
   const session = await isOperator(ctx);
   if (!session) return;
 
+  const language = session.language;
   const operatorUsernames = session.operators;
 
   const operatorUsernamesList =
     operatorUsernames && operatorUsernames.length > 0
       ? operatorUsernames.map((u: string) => `- @${u}`).join("\n")
-      : "No operators found. 未找到操作员。";
+      : language === "zh"
+        ? "未找到操作员。"
+        : "No operators found.";
 
-  ctx.reply(`*Operators 操作员:*\n${operatorUsernamesList}`, {
-    parse_mode: "Markdown",
-  });
+  if (language === "zh") {
+    ctx.reply(`*操作员:*\n${operatorUsernamesList}`, {
+      parse_mode: "Markdown",
+    });
+  } else {
+    ctx.reply(`*Operators:*\n${operatorUsernamesList}`, {
+      parse_mode: "Markdown",
+    });
+  }
 });
 
 //display bill
@@ -244,10 +366,16 @@ bot.hears(CLEAR_BILL, async (ctx) => {
   session.usdt = [];
   await session.save?.();
 
-  ctx.reply(
-    `All bills have been cleared. 所有账单已清空。`,
-    { parse_mode: "Markdown" },
-  );
+  const language = session.language;
+  if (language === "zh") {
+    ctx.reply(`所有账单已清空。`, {
+      parse_mode: "Markdown",
+    });
+  } else {
+    ctx.reply(`All bills have been cleared.`, {
+      parse_mode: "Markdown",
+    });
+  }
 });
 
 bot.hears(/^([FU][+-])(\d+(\.\d+)?)$/i, async (ctx) => {
@@ -259,8 +387,14 @@ bot.hears(/^([FU][+-])(\d+(\.\d+)?)$/i, async (ctx) => {
 
   const type = match[1].toUpperCase();
   const amount = parseFloat(match[2]);
+  const language = session.language;
+
   if (isNaN(amount) || amount <= 0) {
-    return ctx.reply("Invalid amount. 请输入有效的金额。");
+    if (language === "zh") {
+      return ctx.reply("无效的金额。请输入有效的金额。");
+    } else {
+      return ctx.reply("Invalid amount. Please enter a valid amount.");
+    }
   }
 
   if (type.startsWith("F")) {
@@ -270,11 +404,17 @@ bot.hears(/^([FU][+-])(\d+(\.\d+)?)$/i, async (ctx) => {
     if (!Array.isArray(session.usdt)) session.usdt = [];
     session.usdt.push(type === "U+" ? amount : -amount);
   } else {
-    return ctx.reply("Invalid command.");
+    if (language === "zh") {
+      return ctx.reply("无效的命令。");
+    } else {
+      return ctx.reply("Invalid command.");
+    }
   }
 
   await session.save?.();
-  ctx.reply(formatSummary(session), { parse_mode: "Markdown" });
+
+  // Send summary in the user's language only
+   ctx.reply(formatSummary(session), { parse_mode: "Markdown" });
 });
 
 export default bot;

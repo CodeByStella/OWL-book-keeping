@@ -10,11 +10,12 @@ const {
   DISPLAY_OPERATOR,
   DISPLAY_BILL,
   CLEAR_BILL,
+  SET_CHINESE,
+  SET_ENGLISH,
+  SET_FEE
 } = config.COMMANDS;
 
 const groupHandler: MiddlewareFn<Context> = async (ctx, next) => {
-  const userLanguage = ctx.from?.language_code;
-  console.log("User language:", userLanguage);
   if (ctx.message && "new_chat_members" in ctx.message) {
     const newMembers = (ctx.message as any).new_chat_members;
     const botId = ctx.botInfo.id;
@@ -43,28 +44,19 @@ const groupHandler: MiddlewareFn<Context> = async (ctx, next) => {
     const commands = `*Available commands*
 ----------------------------------------
 ${START_BOOK_KEEPING[0]}
+${SET_ENGLISH[0]}
+${SET_CHINESE[0]}
 F+ Record funds income
 F- Record funds expense
 U+ Record USDT income
 U- Record USDT expense
 ${SET_RATE[0]}+(0.00）
+${SET_FEE[0]}+(0.00）
 ${SET_OPERATOR[0]}+@xxx
 ${DELETE_OPERATOR[0]}+@xxx
 ${DISPLAY_OPERATOR[0]}
 ${DISPLAY_BILL[0]}
 ${CLEAR_BILL[0]}
-
-${START_BOOK_KEEPING[1]}
-F+ 记录资金收入
-F- 记录资金支出
-U+ 记录 USDT 收入
-U- 记录 USDT 支出
-${SET_RATE[1]}+(0.00）
-${SET_OPERATOR[1]}+@xxx
-${DELETE_OPERATOR[1]}+@xxx
-${DISPLAY_OPERATOR[1]}
-${DISPLAY_BILL[1]}
-${CLEAR_BILL[1]}
 `;
     await ctx.reply(commands, { parse_mode: "Markdown" });
   }
