@@ -14,7 +14,7 @@ const {
 
 const groupHandler: MiddlewareFn<Context> = async (ctx, next) => {
   const userLanguage = ctx.from?.language_code;
-  console.log(ctx.from,"User language:", userLanguage);
+  console.log("User language:", userLanguage);
   if (ctx.message && "new_chat_members" in ctx.message) {
     const newMembers = (ctx.message as any).new_chat_members;
     const botId = ctx.botInfo.id;
