@@ -57,6 +57,22 @@ ${DELETE_OPERATOR[0]}+@xxx
 ${DISPLAY_OPERATOR[0]}
 ${DISPLAY_BILL[0]}
 ${CLEAR_BILL[0]}
+
+可用命令
+----------------------------------------
+${START_BOOK_KEEPING[1]}
+${SET_ENGLISH[1]}
+F+ 记录资金收入
+F- 记录资金支出
+U+ 记录 USDT 收入
+U- 记录 USDT 支出
+${SET_RATE[1]}+(0.00）
+${SET_FEE[1]}+(0.00）
+${SET_OPERATOR[1]}+@xxx
+${DELETE_OPERATOR[1]}+@xxx
+${DISPLAY_OPERATOR[1]}
+${DISPLAY_BILL[1]}
+${CLEAR_BILL[1]}
 `;
     await ctx.reply(commands, { parse_mode: "Markdown" });
   }
