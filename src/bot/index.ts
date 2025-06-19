@@ -10,34 +10,44 @@ const bot = new Telegraf(config.BOT_TOKEN);
 bot.use(groupHandler);
 bot.use(bookkeepingHandler);
 
+// Set commands
 bot.telegram.setMyCommands([
   { command: "start", description: "Start the bot / 启动机器人" },
   { command: "broadcast", description: "Broadcast a message to groups / 群发消息" },
 ]);
 
+// ---- Session system ---- //
+type BroadcastSession = {
+  lang: "zh" | "en";
+  step: "awaitingMessage";
+  timeoutId: NodeJS.Timeout;
+};
+const broadcastSessions = new Map<number, BroadcastSession>();
+
+// ---- Handlers ---- //
+
 bot.start((ctx: Context) => {
-  // Only allow in private chats
   if (ctx.chat?.type !== "private") return;
 
   try {
     const userLang = (ctx.from?.language_code || "en").split("-")[0];
-    const replyText = userLang === "zh"
-      ? "👋 *欢迎使用 OwlBookKeepingBot！*\n\n请将我添加到您的群组，我将帮助您轻松管理群组的记账任务。"
-      : "👋 *Welcome to OwlBookKeepingBot!*\n\nTo get started, please add me to your group. I’ll help you manage your group’s bookkeeping tasks easily.";
+    const replyText =
+      userLang === "zh"
+        ? "👋 *欢迎使用 OwlBookKeepingBot！*\n\n请将我添加到您的群组，我将帮助您轻松管理群组的记账任务。"
+        : "👋 *Welcome to OwlBookKeepingBot!*\n\nTo get started, please add me to your group. I’ll help you manage your group’s bookkeeping tasks easily.";
     ctx.reply(replyText, { parse_mode: "Markdown" });
   } catch (error) {
     console.error("Error in /start handler:", error);
   }
 });
 
-// Store broadcast state per user
-const broadcastState: Record<number, { lang: "zh" | "en" | null }> = {};
-
-// Helper to get group IDs by language
-async function getGroupIdsByLang(language: "zh" | "en"): Promise<number[]> {
+async function getGroupIdsByLang(language: "zh" | "en", username: string): Promise<number[]> {
   try {
-    const groups = await GroupSession.find({ language });
-    return groups.map((g: any) => g.groupId);
+    const groups = await GroupSession.find({
+      language,
+      operators: { $in: [username] },
+    });
+    return groups.map((g: any) => Number(g.groupId));
   } catch (e) {
     console.error("Error fetching group ids:", e);
     return [];
@@ -45,7 +55,6 @@ async function getGroupIdsByLang(language: "zh" | "en"): Promise<number[]> {
 }
 
 bot.command("broadcast", async (ctx) => {
-  // Only allow in private chats
   if (ctx.chat?.type !== "private") return;
 
   const userLang = (ctx.from?.language_code || "en").split("-")[0];
@@ -53,54 +62,66 @@ bot.command("broadcast", async (ctx) => {
     userLang === "zh"
       ? "请选择要广播的群组语言："
       : "Please select the group language to broadcast to:";
+
   await ctx.reply(
     replyText,
     Markup.inlineKeyboard([
       [Markup.button.callback("🇨🇳 Chinese Groups", "broadcast_zh")],
       [Markup.button.callback("🇬🇧 English Groups", "broadcast_en")],
-    ]),
+    ])
   );
-  broadcastState[ctx.from.id] = { lang: null };
 });
 
+async function setBroadcastSession(ctx: Context, lang: "zh" | "en") {
+  const userId = ctx.from?.id;
+  if (!userId) return;
+
+  const timeoutId = setTimeout(() => {
+    broadcastSessions.delete(userId);
+  }, 5 * 60 * 1000); // 5-minute timeout
+
+  broadcastSessions.set(userId, {
+    lang,
+    step: "awaitingMessage",
+    timeoutId,
+  });
+}
+
 bot.action("broadcast_zh", async (ctx) => {
-  // Only allow in private chats
   if (ctx.chat?.type !== "private") return;
 
-  broadcastState[ctx.from.id] = { lang: "zh" };
+  await setBroadcastSession(ctx, "zh");
   await ctx.answerCbQuery();
+
   const userLang = (ctx.from?.language_code || "en").split("-")[0];
   await ctx.reply(
     userLang === "zh"
       ? "请发送您要广播到中文群组的消息。"
-      : "Please send the message you want to broadcast to Chinese groups.",
+      : "Please send the message you want to broadcast to Chinese groups."
   );
 });
 
 bot.action("broadcast_en", async (ctx) => {
-  // Only allow in private chats
   if (ctx.chat?.type !== "private") return;
 
-  broadcastState[ctx.from.id] = { lang: "en" };
+  await setBroadcastSession(ctx, "en");
   await ctx.answerCbQuery();
+
   const userLang = (ctx.from?.language_code || "en").split("-")[0];
   await ctx.reply(
     userLang === "zh"
       ? "请发送您要广播到英文群组的消息。"
-      : "Please send the message you want to broadcast to English groups.",
+      : "Please send the message you want to broadcast to English groups."
   );
 });
 
-bot.on(["message"], async (ctx) => {
-  // Only allow in private chats
+bot.on("message", async (ctx) => {
   if (ctx.chat?.type !== "private") return;
+  const userId = ctx.from?.id;
+  const session = broadcastSessions.get(userId);
+  if (!session || session.step !== "awaitingMessage") return;
 
-  const state = broadcastState[ctx.from?.id];
-  if (!state || !state.lang) return;
-
-  // Query group IDs from DB
-  const targetGroups = await getGroupIdsByLang(state.lang);
-
+  const targetGroups = await getGroupIdsByLang(session.lang, ctx.from?.username || "");
   const userLang = (ctx.from?.language_code || "en").split("-")[0];
 
   if (!targetGroups.length) {
@@ -109,12 +130,13 @@ bot.on(["message"], async (ctx) => {
         ? "没有找到对应语言的群组，无法广播。"
         : "No groups found for the selected language. Broadcast not sent."
     );
-    delete broadcastState[ctx.from.id];
+    clearTimeout(session.timeoutId);
+    broadcastSessions.delete(userId);
     return;
   }
 
-  // Forward the message to each group
   const msg = ctx.message as Message;
+
   for (const groupId of targetGroups) {
     try {
       await ctx.telegram.copyMessage(groupId, ctx.chat.id, msg.message_id);
@@ -124,10 +146,11 @@ bot.on(["message"], async (ctx) => {
   }
 
   await ctx.reply(userLang === "zh" ? "广播已发送！" : "Broadcast sent!");
-  delete broadcastState[ctx.from.id];
+  clearTimeout(session.timeoutId);
+  broadcastSessions.delete(userId);
 });
 
-
+// Launch function
 export const launchBot = async () => {
   try {
     return await new Promise((resolve) => {

@@ -1,72 +1,76 @@
 import { Composer } from "telegraf";
-import { isOperator } from "@/utils";
+import { getChinaTime, isOperator } from "@/utils";
 import config from "@/config";
+import { GroupSessionType } from "@/models/GroupSession";
 
 const bot = new Composer();
 
-function formatSummary(session: any): string {
+function formatSummary(session: GroupSessionType): string {
   const rate = session.rate || 1;
   const fee = session.fee || 0;
-  const funds: number[] = Array.isArray(session.funds) ? session.funds : [];
-  const usdt: number[] = Array.isArray(session.usdt) ? session.usdt : [];
+  const funds = Array.isArray(session.funds) ? session.funds : [];
+  const usdt = Array.isArray(session.usdt) ? session.usdt : [];
 
-  const totalFunds = funds.reduce((sum, val) => sum + val, 0);
-  const totalUSDT = usdt.reduce((sum, val) => sum + val, 0);
+  const payableFunds = funds.reduce((sum, tx) => sum + tx.value, 0);
+  const payableUSDT = funds.reduce(
+    (sum, tx) => sum + (tx.value * (1 - tx.fee / 100)) / tx.rate,
+    0,
+  );
+  const paidUSDT = usdt.reduce((sum, tx) => sum + tx.value, 0);
+  const paidFunds = usdt.reduce(
+    (sum, tx) => sum + (tx.value * tx.rate) / (1 - tx.fee / 100),
+    0,
+  );
 
   const fundSummary = funds
     .map(
-      (amount: number, i: number) =>
-        `(${i + 1}) ${amount} / ${rate.toFixed(2)} = ${((amount * (1 - fee/100)) / rate).toFixed(2)}`,
+      (tx, i: number) =>
+        `(${i + 1}) ${tx.value} / ${rate.toFixed(2)} = ${((tx.value * (1 - tx.fee / 100)) / rate).toFixed(2)}`,
     )
     .join("\n");
 
   const usdtSummary = usdt
     .map(
-      (amount: number, i: number) =>
-        `(${i + 1}) ${amount} (${(amount * rate).toFixed(2)})`,
+      (tx, i: number) =>
+        `(${i + 1}) ${tx.value} (${((tx.value * tx.rate) / (1 - tx.fee / 100)).toFixed(2)})`,
     )
     .join("\n");
 
-  const payableU = ((totalFunds * (1 - fee/100)) / rate).toFixed(2);
-  const unpaidU = (((totalFunds * (1 - fee/100)) - totalUSDT / rate)).toFixed(2);
-
   if (session.language === "zh") {
     return `
-*记账成功！*
 -------------------
 资金（${funds.length} 笔）
 ${fundSummary}
-*合计: ${totalFunds.toFixed(2)}*
+*合计: ${payableFunds.toFixed(2)}*
 -------------------
 USDT（${usdt.length} 笔）
 ${usdtSummary}
-*合计: ${totalUSDT.toFixed(2)} USDT*
+*合计: ${paidUSDT.toFixed(2)} USDT*
 -------------------
 汇率: ${rate.toFixed(2)}
 费用: ${fee.toFixed(2)}
 -------------------
-应付: ${totalFunds.toFixed(2)} | ${payableU} U
-已付: ${(totalUSDT * rate).toFixed(2)} | ${totalUSDT.toFixed(2)} U
-未付: ${((totalFunds * (1 - fee/100)) - totalUSDT).toFixed(2)} | ${unpaidU} U
+应付: ${payableFunds.toFixed(2)} | ${payableUSDT.toFixed(2)} U
+已付: ${paidFunds.toFixed(2)} | ${paidUSDT.toFixed(2)} U
+未付: ${(paidFunds - payableFunds).toFixed(2)} | ${(paidUSDT - payableUSDT).toFixed(2)} U
 `.trim();
   } else {
     return `
-*Bookkeeping Success!*
 -------------------
 Funds (${funds.length} orders)
 ${fundSummary}
-*Total: ${totalFunds.toFixed(2)}*
+*Total: ${payableFunds.toFixed(2)}*
 -------------------
 USDT (${usdt.length} orders)
 ${usdtSummary}
-*Total: ${totalUSDT.toFixed(2)} USDT*
+*Total: ${paidUSDT.toFixed(2)} USDT*
 -------------------
 Rate: ${rate.toFixed(2)}
 Fee: ${fee.toFixed(2)}
 -------------------
-Payable: ${totalFunds.toFixed(2)} | ${payableU} U
-Paid: ${(totalUSDT * rate).toFixed(2)} | ${totalUSDT.toFixed(2)} U
-Unpaid: ${((totalFunds * (1 - fee/100)) - totalUSDT).toFixed(2)} | ${unpaidU} U
+Payable: ${payableFunds.toFixed(2)} | ${payableUSDT.toFixed(2)} U
+Paid: ${paidFunds.toFixed(2)} | ${paidUSDT.toFixed(2)} U
+Unpaid: ${(paidFunds - payableFunds).toFixed(2)} | ${(paidUSDT - payableUSDT).toFixed(2)} U
 `.trim();
   }
 }
@@ -83,7 +87,6 @@ const {
   DISPLAY_BILL,
   CLEAR_BILL,
 } = config.COMMANDS;
-
 
 //start bookkeeping
 bot.hears(START_BOOK_KEEPING, async (ctx) => {
@@ -139,6 +142,7 @@ ${CLEAR_BILL[0]}
   }
 });
 
+//Set language as Chinese
 bot.hears(SET_CHINESE, async (ctx) => {
   const session = await isOperator(ctx);
   if (!session) return;
@@ -150,6 +154,7 @@ bot.hears(SET_CHINESE, async (ctx) => {
   ctx.reply("语言已切换为中文。");
 });
 
+//Set language as English
 bot.hears(SET_ENGLISH, async (ctx) => {
   const session = await isOperator(ctx);
   if (!session) return;
@@ -198,7 +203,7 @@ bot.hears(
   },
 );
 
-// Set rate command: e.g. Set rate+123 or 设置汇率+123
+// Set fee command: e.g. Set fee+123 or 设置费用+123
 bot.hears(
   new RegExp(`^(${SET_FEE[0]}|${SET_FEE[1]})\\+([\\d.]+)$`, "i"),
   async (ctx) => {
@@ -252,7 +257,9 @@ bot.hears(
       if (language === "zh") {
         return ctx.reply(`格式错误。请使用 ${SET_OPERATOR[1]}+@用户名`);
       } else {
-        return ctx.reply(`Invalid format. Please use ${SET_OPERATOR[0]}+@username`);
+        return ctx.reply(
+          `Invalid format. Please use ${SET_OPERATOR[0]}+@username`,
+        );
       }
     }
     const username = match[2];
@@ -299,7 +306,9 @@ bot.hears(
       if (language === "zh") {
         return ctx.reply(`格式错误。请使用 ${DELETE_OPERATOR[1]}+@用户名`);
       } else {
-        return ctx.reply(`Invalid format. Please use ${DELETE_OPERATOR[0]}+@username`);
+        return ctx.reply(
+          `Invalid format. Please use ${DELETE_OPERATOR[0]}+@username`,
+        );
       }
     }
     const username = match[2];
@@ -353,8 +362,14 @@ bot.hears(DISPLAY_OPERATOR, async (ctx) => {
 bot.hears(DISPLAY_BILL, async (ctx) => {
   const session = await isOperator(ctx);
   if (!session) return;
+  const language = session.language;
 
-  ctx.reply(formatSummary(session), { parse_mode: "Markdown" });
+  ctx.reply(
+    language === "zh"
+      ? `*账单:*\n${formatSummary(session)}`
+      : `*Bill:*\n${formatSummary(session)}`,
+    { parse_mode: "Markdown" },
+  );
 });
 
 //clear bill
@@ -362,8 +377,8 @@ bot.hears(CLEAR_BILL, async (ctx) => {
   const session = await isOperator(ctx);
   if (!session) return;
 
-  session.funds = [];
-  session.usdt = [];
+  session.funds = [] as typeof session.funds;
+  session.usdt = [] as typeof session.usdt;
   await session.save?.();
 
   const language = session.language;
@@ -398,11 +413,20 @@ bot.hears(/^([FU][+-])(\d+(\.\d+)?)$/i, async (ctx) => {
   }
 
   if (type.startsWith("F")) {
-    if (!Array.isArray(session.funds)) session.funds = [];
-    session.funds.push(type === "F+" ? amount : -amount);
+    if (!Array.isArray(session.funds))
+      session.funds = [] as typeof session.funds;
+    session.funds.push({
+      rate: session.rate,
+      fee: session.fee,
+      value: type === "F+" ? amount : -amount,
+    });
   } else if (type.startsWith("U")) {
-    if (!Array.isArray(session.usdt)) session.usdt = [];
-    session.usdt.push(type === "U+" ? amount : -amount);
+    if (!Array.isArray(session.usdt)) session.usdt = [] as typeof session.usdt;
+    session.usdt.push({
+      rate: session.rate,
+      fee: session.fee,
+      value: type === "U+" ? amount : -amount,
+    });
   } else {
     if (language === "zh") {
       return ctx.reply("无效的命令。");
@@ -413,8 +437,13 @@ bot.hears(/^([FU][+-])(\d+(\.\d+)?)$/i, async (ctx) => {
 
   await session.save?.();
 
+  const prefixTxt =
+    language === "zh"
+      ? `*记账成功*\n类型：${type.startsWith("F") ? "资金" : "USDT"}\n金额：${amount.toFixed(2)}\n时间(UTC+8)：${(await getChinaTime()).toLocaleString("zh-CN")}\n`
+      : `*Bookkeeping Success!*\nType: ${type.startsWith("F") ? "Funds" : "USDT"}\nAmount: ${amount.toFixed(2)}\nTime(UTC+8): ${(await getChinaTime()).toLocaleString("en-US")}\n`;
+
   // Send summary in the user's language only
-   ctx.reply(formatSummary(session), { parse_mode: "Markdown" });
+  ctx.reply(prefixTxt + formatSummary(session), { parse_mode: "Markdown" });
 });
 
 export default bot;

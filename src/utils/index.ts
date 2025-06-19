@@ -31,12 +31,22 @@ export const isOperator = async (ctx: Context) => {
 
     const session = await GroupSession.findOne({
       groupId,
-      operators: { $in: [username] }
     });
-    if (!session) {
-      ctx.reply("Only operators can start bookkeeping. 仅限操作员使用。");
+    if (session) {
+      if (!session.operators.includes(username)) {
+        ctx.reply(
+          session.language === "zh"
+            ? "只有操作员可以开始记账。"
+            : "Only operators can start bookkeeping.",
+        );
+        return null;
+      } else {
+        return session;
+      }
+    } else {
+      ctx.reply("Session not found. Please add this bot back to this group.");
+      return null;
     }
-    return session || null;
   } catch (error) {
     console.error(error);
     return null;
@@ -56,4 +66,20 @@ export const formatDate = (date: Date) => {
     minute: "2-digit",
     second: "2-digit",
   }).format(date);
+};
+
+export const getChinaTime = async (): Promise<Date> => {
+  try {
+    const res = await fetch("http://worldtimeapi.org/api/timezone/Asia/Shanghai");
+  if (!res.ok) {
+    return new Date();
+  }
+  const data = await res.json();
+
+  // `datetime` is ISO string like "2025-06-18T13:45:00.123456+08:00"
+  return new Date(data.datetime.split("+")[0]);
+  } catch (error) {
+    console.error(error);
+    return new Date();
+  }
 };
