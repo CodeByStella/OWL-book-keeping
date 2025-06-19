@@ -12,7 +12,7 @@ const {
   CLEAR_BILL,
   SET_CHINESE,
   SET_ENGLISH,
-  SET_FEE
+  SET_FEE,
 } = config.COMMANDS;
 
 const groupHandler: MiddlewareFn<Context> = async (ctx, next) => {
@@ -33,7 +33,7 @@ const groupHandler: MiddlewareFn<Context> = async (ctx, next) => {
       .filter(
         (name): name is string =>
           typeof name === "string" &&
-          (!ctx.botInfo.username || name !== ctx.botInfo.username)
+          (!ctx.botInfo.username || name !== ctx.botInfo.username),
       );
 
     await GroupSession.create({

@@ -21,7 +21,6 @@ if (config_missing) {
   process.exit(1);
 }
 
-
 const commands = {
   SET_CHINESE: ["Set Language Chinese", "设置语言为中文"],
   SET_ENGLISH: ["Set Language English", "设置语言为英文"],
@@ -43,7 +42,7 @@ interface Config {
 const config: Config = {
   BOT_TOKEN: BOT_TOKEN!,
   MONGODB_URI: MONGODB_URI!,
-  COMMANDS: commands
+  COMMANDS: commands,
 };
 
 export default config;

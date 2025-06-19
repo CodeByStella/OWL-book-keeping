@@ -13,7 +13,10 @@ bot.use(bookkeepingHandler);
 // Set commands
 bot.telegram.setMyCommands([
   { command: "start", description: "Start the bot / 启动机器人" },
-  { command: "broadcast", description: "Broadcast a message to groups / 群发消息" },
+  {
+    command: "broadcast",
+    description: "Broadcast a message to groups / 群发消息",
+  },
 ]);
 
 // ---- Session system ---- //
@@ -41,7 +44,10 @@ bot.start((ctx: Context) => {
   }
 });
 
-async function getGroupIdsByLang(language: "zh" | "en", username: string): Promise<number[]> {
+async function getGroupIdsByLang(
+  language: "zh" | "en",
+  username: string,
+): Promise<number[]> {
   try {
     const groups = await GroupSession.find({
       language,
@@ -68,7 +74,7 @@ bot.command("broadcast", async (ctx) => {
     Markup.inlineKeyboard([
       [Markup.button.callback("🇨🇳 Chinese Groups", "broadcast_zh")],
       [Markup.button.callback("🇬🇧 English Groups", "broadcast_en")],
-    ])
+    ]),
   );
 });
 
@@ -76,9 +82,12 @@ async function setBroadcastSession(ctx: Context, lang: "zh" | "en") {
   const userId = ctx.from?.id;
   if (!userId) return;
 
-  const timeoutId = setTimeout(() => {
-    broadcastSessions.delete(userId);
-  }, 5 * 60 * 1000); // 5-minute timeout
+  const timeoutId = setTimeout(
+    () => {
+      broadcastSessions.delete(userId);
+    },
+    5 * 60 * 1000,
+  ); // 5-minute timeout
 
   broadcastSessions.set(userId, {
     lang,
@@ -97,7 +106,7 @@ bot.action("broadcast_zh", async (ctx) => {
   await ctx.reply(
     userLang === "zh"
       ? "请发送您要广播到中文群组的消息。"
-      : "Please send the message you want to broadcast to Chinese groups."
+      : "Please send the message you want to broadcast to Chinese groups.",
   );
 });
 
@@ -111,7 +120,7 @@ bot.action("broadcast_en", async (ctx) => {
   await ctx.reply(
     userLang === "zh"
       ? "请发送您要广播到英文群组的消息。"
-      : "Please send the message you want to broadcast to English groups."
+      : "Please send the message you want to broadcast to English groups.",
   );
 });
 
@@ -121,14 +130,17 @@ bot.on("message", async (ctx) => {
   const session = broadcastSessions.get(userId);
   if (!session || session.step !== "awaitingMessage") return;
 
-  const targetGroups = await getGroupIdsByLang(session.lang, ctx.from?.username || "");
+  const targetGroups = await getGroupIdsByLang(
+    session.lang,
+    ctx.from?.username || "",
+  );
   const userLang = (ctx.from?.language_code || "en").split("-")[0];
 
   if (!targetGroups.length) {
     await ctx.reply(
       userLang === "zh"
         ? "没有找到对应语言的群组，无法广播。"
-        : "No groups found for the selected language. Broadcast not sent."
+        : "No groups found for the selected language. Broadcast not sent.",
     );
     clearTimeout(session.timeoutId);
     broadcastSessions.delete(userId);
