@@ -25,7 +25,7 @@ function formatSummary(session: GroupSessionType): string {
   const fundSummary = funds
     .map(
       (tx, i: number) =>
-        `(${i + 1}) ${tx.value} / ${rate.toFixed(2)} = ${((tx.value * (1 - tx.fee / 100)) / rate).toFixed(2)}`,
+        `(${i + 1}) ${tx.value} / ${tx.rate.toFixed(2)} = ${((tx.value * (1 - tx.fee / 100)) / tx.rate).toFixed(2)}`,
     )
     .join("\n");
 
@@ -223,7 +223,7 @@ bot.hears(
       }
     }
     const fee = parseFloat(match[2]);
-    if (isNaN(fee) || fee <= 0) {
+    if (isNaN(fee) || fee < 0) {
       if (language === "zh") {
         return ctx.reply("无效的手续费值。请输入有效的手续费。");
       } else {
