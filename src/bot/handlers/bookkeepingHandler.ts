@@ -1,4 +1,4 @@
-import { Composer } from "telegraf";
+import { Composer, Markup } from "telegraf";
 import { getChinaTime, isOperator } from "@/utils";
 import config from "@/config";
 import { GroupSessionType } from "@/models/GroupSession";
@@ -22,14 +22,80 @@ function formatSummary(session: GroupSessionType): string {
     0,
   );
 
-  const fundSummary = funds
+  const fundSummary = [...funds]
+    .splice(0, 3)
     .map(
       (tx, i: number) =>
         `(${i + 1}) ${tx.value} / ${tx.rate.toFixed(2)} = ${((tx.value * (1 - tx.fee / 100)) / tx.rate).toFixed(2)}`,
     )
     .join("\n");
 
-  const usdtSummary = usdt
+  const usdtSummary = [...usdt]
+    .splice(0, 3)
+    .map(
+      (tx, i: number) =>
+        `(${i + 1}) ${tx.value} (${((tx.value * tx.rate) / (1 - tx.fee / 100)).toFixed(2)})`,
+    )
+    .join("\n");
+
+  if (session.language === "zh") {
+    return `
+-------------------
+资金（${funds.length} 笔）
+${fundSummary}
+${funds.length > 3 ? "...\n" : ""}
+*合计: ${payableFunds.toFixed(2)}*
+-------------------
+USDT（${usdt.length} 笔）
+${usdtSummary}
+${usdt.length > 3 ? "...\n" : ""}
+*合计: ${paidUSDT.toFixed(2)} USDT*
+-------------------
+汇率: ${rate.toFixed(2)}
+费用: ${fee.toFixed(2)}
+-------------------
+应付: ${payableFunds.toFixed(2)} | ${payableUSDT.toFixed(2)} U
+已付: ${paidFunds.toFixed(2)} | ${paidUSDT.toFixed(2)} U
+未付: ${(paidFunds - payableFunds).toFixed(2)} | ${(paidUSDT - payableUSDT).toFixed(2)} U
+`.trim();
+  } else {
+    return `
+-------------------
+Funds (${funds.length} orders)
+${fundSummary}
+${funds.length > 3 ? "...\n" : ""}
+*Total: ${payableFunds.toFixed(2)}*
+-------------------
+USDT (${usdt.length} orders)
+${usdtSummary}
+${usdt.length > 3 ? "...\n" : ""}
+*Total: ${paidUSDT.toFixed(2)} USDT*
+-------------------
+Rate: ${rate.toFixed(2)}
+Fee: ${fee.toFixed(2)}
+-------------------
+Payable: ${payableFunds.toFixed(2)} | ${payableUSDT.toFixed(2)} U
+Paid: ${paidFunds.toFixed(2)} | ${paidUSDT.toFixed(2)} U
+Unpaid: ${(paidFunds - payableFunds).toFixed(2)} | ${(paidUSDT - payableUSDT).toFixed(2)} U
+`.trim();
+  }
+}
+
+const formatFullBill = (session: GroupSessionType) => {
+  const funds = Array.isArray(session.funds) ? session.funds : [];
+  const usdt = Array.isArray(session.usdt) ? session.usdt : [];
+
+  const payableFunds = funds.reduce((sum, tx) => sum + tx.value, 0);
+  const paidUSDT = usdt.reduce((sum, tx) => sum + tx.value, 0);
+
+  const fundSummary = [...funds]
+    .map(
+      (tx, i: number) =>
+        `(${i + 1}) ${tx.value} / ${tx.rate.toFixed(2)} = ${((tx.value * (1 - tx.fee / 100)) / tx.rate).toFixed(2)}`,
+    )
+    .join("\n");
+
+  const usdtSummary = [...usdt]
     .map(
       (tx, i: number) =>
         `(${i + 1}) ${tx.value} (${((tx.value * tx.rate) / (1 - tx.fee / 100)).toFixed(2)})`,
@@ -46,13 +112,6 @@ ${fundSummary}
 USDT（${usdt.length} 笔）
 ${usdtSummary}
 *合计: ${paidUSDT.toFixed(2)} USDT*
--------------------
-汇率: ${rate.toFixed(2)}
-费用: ${fee.toFixed(2)}
--------------------
-应付: ${payableFunds.toFixed(2)} | ${payableUSDT.toFixed(2)} U
-已付: ${paidFunds.toFixed(2)} | ${paidUSDT.toFixed(2)} U
-未付: ${(paidFunds - payableFunds).toFixed(2)} | ${(paidUSDT - payableUSDT).toFixed(2)} U
 `.trim();
   } else {
     return `
@@ -64,16 +123,9 @@ ${fundSummary}
 USDT (${usdt.length} orders)
 ${usdtSummary}
 *Total: ${paidUSDT.toFixed(2)} USDT*
--------------------
-Rate: ${rate.toFixed(2)}
-Fee: ${fee.toFixed(2)}
--------------------
-Payable: ${payableFunds.toFixed(2)} | ${payableUSDT.toFixed(2)} U
-Paid: ${paidFunds.toFixed(2)} | ${paidUSDT.toFixed(2)} U
-Unpaid: ${(paidFunds - payableFunds).toFixed(2)} | ${(paidUSDT - payableUSDT).toFixed(2)} U
 `.trim();
   }
-}
+};
 
 const {
   SET_CHINESE,
@@ -368,7 +420,32 @@ bot.hears(DISPLAY_BILL, async (ctx) => {
     language === "zh"
       ? `*账单:*\n${formatSummary(session)}`
       : `*Bill:*\n${formatSummary(session)}`,
-    { parse_mode: "Markdown" },
+    {
+      parse_mode: "Markdown",
+      ...Markup.inlineKeyboard([
+        [
+          Markup.button.callback(
+            language === "zh" ? "完整账单" : "Full bill",
+            "full_bill",
+          ),
+        ],
+      ]),
+    },
+  );
+});
+
+bot.action("full_bill", async (ctx) => {
+  const session = await isOperator(ctx);
+  if (!session) return;
+
+  const language = session.language;
+  ctx.reply(
+    language === "zh"
+      ? `*完整账单:*\n${formatFullBill(session)}`
+      : `*Full bill:*\n${formatFullBill(session)}`,
+    {
+      parse_mode: "Markdown",
+    },
   );
 });
 
@@ -443,7 +520,17 @@ bot.hears(/^([FU][+-])(\d+(\.\d+)?)$/i, async (ctx) => {
       : `*Bookkeeping Success!*\nType: ${type.startsWith("F") ? "Funds" : "USDT"}\nAmount: ${amount.toFixed(2)}\nTime(UTC+8): ${(await getChinaTime()).toLocaleString("en-US")}\n`;
 
   // Send summary in the user's language only
-  ctx.reply(prefixTxt + formatSummary(session), { parse_mode: "Markdown" });
+  ctx.reply(prefixTxt + formatSummary(session), {
+    parse_mode: "Markdown",
+    ...Markup.inlineKeyboard([
+      [
+        Markup.button.callback(
+          language === "zh" ? "完整账单" : "Full bill",
+          "full_bill",
+        ),
+      ],
+    ]),
+  });
 });
 
 export default bot;
