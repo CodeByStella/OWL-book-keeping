@@ -23,7 +23,7 @@ function formatSummary(session: GroupSessionType): string {
   );
 
   const fundSummary = [...funds]
-    .splice(0, 3)
+    .splice(-3)
     .map(
       (tx, i: number) =>
         `(${i + 1}) ${tx.value} / ${tx.rate.toFixed(2)} = ${((tx.value * (1 - tx.fee / 100)) / tx.rate).toFixed(2)}`,
@@ -31,7 +31,7 @@ function formatSummary(session: GroupSessionType): string {
     .join("\n");
 
   const usdtSummary = [...usdt]
-    .splice(0, 3)
+    .splice(-3)
     .map(
       (tx, i: number) =>
         `(${i + 1}) ${tx.value} (${((tx.value * tx.rate) / (1 - tx.fee / 100)).toFixed(2)})`,
