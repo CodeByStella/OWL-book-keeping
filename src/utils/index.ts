@@ -69,19 +69,20 @@ export const formatDate = (date: Date) => {
 };
 
 export const getChinaTime = async (): Promise<Date> => {
-  try {
-    const res = await fetch(
-      "http://worldtimeapi.org/api/timezone/Asia/Shanghai",
-    );
-    if (!res.ok) {
-      return new Date();
-    }
-    const data = await res.json();
+  return new Date();
+  // try {
+  //   const res = await fetch(
+  //     "http://worldtimeapi.org/api/timezone/Asia/Shanghai",
+  //   );
+  //   if (!res.ok) {
+  //     return new Date();
+  //   }
+  //   const data = await res.json();
 
-    // `datetime` is ISO string like "2025-06-18T13:45:00.123456+08:00"
-    return new Date(data.datetime.split("+")[0]);
-  } catch (error) {
-    console.error(error);
-    return new Date();
-  }
+  //   // `datetime` is ISO string like "2025-06-18T13:45:00.123456+08:00"
+  //   return new Date(data.datetime.split("+")[0]);
+  // } catch (error) {
+  //   console.error(error);
+  //   return new Date();
+  // }
 };

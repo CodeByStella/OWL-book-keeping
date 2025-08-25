@@ -46,8 +46,8 @@ const groupHandler: MiddlewareFn<Context> = async (ctx, next) => {
 ${START_BOOK_KEEPING[0]}
 ${SET_ENGLISH[0]}
 ${SET_CHINESE[0]}
-F+ Record funds income
-F- Record funds expense
++ Record funds income
+- Record funds expense
 U+ Record USDT income
 U- Record USDT expense
 ${SET_RATE[0]}+(0.00）
@@ -62,8 +62,8 @@ ${CLEAR_BILL[0]}
 ----------------------------------------
 ${START_BOOK_KEEPING[1]}
 ${SET_ENGLISH[1]}
-F+ 记录资金收入
-F- 记录资金支出
++ 记录资金收入
+- 记录资金支出
 U+ 记录 USDT 收入
 U- 记录 USDT 支出
 ${SET_RATE[1]}+(0.00）

@@ -155,8 +155,8 @@ bot.hears(START_BOOK_KEEPING, async (ctx) => {
 ----------------------------------------
 ${START_BOOK_KEEPING[1]}
 ${SET_ENGLISH[1]}
-F+ 记录资金收入
-F- 记录资金支出
++ 记录资金收入
+- 记录资金支出
 U+ 记录 USDT 收入
 U- 记录 USDT 支出
 ${SET_RATE[1]}+(0.00）
@@ -177,8 +177,8 @@ Available commands
 ----------------------------------------
 ${START_BOOK_KEEPING[0]}
 ${SET_CHINESE[0]}
-F+ Record funds income
-F- Record funds expense
++ Record funds income
+- Record funds expense
 U+ Record USDT income
 U- Record USDT expense
 ${SET_RATE[0]}+(0.00）
@@ -470,18 +470,33 @@ bot.hears(CLEAR_BILL, async (ctx) => {
   }
 });
 
-bot.hears(/^([FU][+-])(\d+(\.\d+)?)$/i, async (ctx) => {
+bot.hears(/^([+-]\d+(\.\d+)?|U[+-]\d+(\.\d+)?)$/i, async (ctx) => {
   const session = await isOperator(ctx);
   if (!session) return;
 
-  const match = ctx.message.text.match(/^([FU][+-])(\d+(\.\d+)?)$/i);
-  if (!match) return;
-
-  const type = match[1].toUpperCase();
-  const amount = parseFloat(match[2]);
+  const text = ctx.message.text.trim();
   const language = session.language;
 
-  if (isNaN(amount) || amount <= 0) {
+  let type: "funds" | "usdt" | null = null;
+  let amount: number | null = null;
+
+  // Match for USDT: U+123 or U-123
+  const usdtMatch = text.match(/^U([+-])(\d+(\.\d+)?)$/i);
+  if (usdtMatch) {
+    type = "usdt";
+    amount = parseFloat(usdtMatch[2]);
+    if (usdtMatch[1] === "-") amount = -amount;
+  } else {
+    // Match for funds: +123 or -123
+    const fundsMatch = text.match(/^([+-])(\d+(\.\d+)?)$/);
+    if (fundsMatch) {
+      type = "funds";
+      amount = parseFloat(fundsMatch[2]);
+      if (fundsMatch[1] === "-") amount = -amount;
+    }
+  }
+
+  if (type === null || amount === null || isNaN(amount) || amount === 0) {
     if (language === "zh") {
       return ctx.reply("无效的金额。请输入有效的金额。");
     } else {
@@ -489,20 +504,20 @@ bot.hears(/^([FU][+-])(\d+(\.\d+)?)$/i, async (ctx) => {
     }
   }
 
-  if (type.startsWith("F")) {
+  if (type === "funds") {
     if (!Array.isArray(session.funds))
       session.funds = [] as typeof session.funds;
     session.funds.push({
       rate: session.rate,
       fee: session.fee,
-      value: type === "F+" ? amount : -amount,
+      value: amount,
     });
-  } else if (type.startsWith("U")) {
+  } else if (type === "usdt") {
     if (!Array.isArray(session.usdt)) session.usdt = [] as typeof session.usdt;
     session.usdt.push({
       rate: session.rate,
       fee: session.fee,
-      value: type === "U+" ? amount : -amount,
+      value: amount,
     });
   } else {
     if (language === "zh") {
@@ -516,10 +531,9 @@ bot.hears(/^([FU][+-])(\d+(\.\d+)?)$/i, async (ctx) => {
 
   const prefixTxt =
     language === "zh"
-      ? `*记账成功*\n类型：${type.startsWith("F") ? "资金" : "USDT"}\n金额：${amount.toFixed(2)}\n时间(UTC+8)：${(await getChinaTime()).toLocaleString("zh-CN")}\n`
-      : `*Bookkeeping Success!*\nType: ${type.startsWith("F") ? "Funds" : "USDT"}\nAmount: ${amount.toFixed(2)}\nTime(UTC+8): ${(await getChinaTime()).toLocaleString("en-US")}\n`;
+      ? `*记账成功*\n类型：${type === "funds" ? "资金" : "USDT"}\n金额：${Math.abs(amount).toFixed(2)}\n时间(UTC+8)：${(await getChinaTime()).toLocaleString("zh-CN")}\n`
+      : `*Bookkeeping Success!*\nType: ${type === "funds" ? "Funds" : "USDT"}\nAmount: ${Math.abs(amount).toFixed(2)}\nTime(UTC+8): ${(await getChinaTime()).toLocaleString("en-US")}\n`;
 
-  // Send summary in the user's language only
   ctx.reply(prefixTxt + formatSummary(session), {
     parse_mode: "Markdown",
     ...Markup.inlineKeyboard([
