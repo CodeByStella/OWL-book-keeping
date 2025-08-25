@@ -8,6 +8,7 @@ export type GroupSessionType = {
   funds: { value: number; rate: number; fee: number }[];
   usdt: { value: number; rate: number; fee: number }[];
   language: "en" | "zh";
+  address: { address: string; times: number; sender: string }[];
 };
 
 const TransactionSchema = new Schema(
@@ -15,6 +16,15 @@ const TransactionSchema = new Schema(
     value: { type: Number, required: true },
     rate: { type: Number, default: 1 },
     fee: { type: Number, default: 0 },
+  },
+  { _id: false, timestamps: true }, // Disable _id for subdocuments to keep arrays clean
+);
+
+const AddressSchema = new Schema(
+  {
+    address: { type: String, required: true },
+    times: { type: Number, default: 1 },
+    sender: { type: String, default: "" },
   },
   { _id: false, timestamps: true }, // Disable _id for subdocuments to keep arrays clean
 );
@@ -31,6 +41,7 @@ const GroupSessionSchema = new Schema({
     enum: ["en", "zh"],
     default: "en",
   },
+  address: { type: [AddressSchema], default: [] },
 });
 
 export default model("GroupSession", GroupSessionSchema);

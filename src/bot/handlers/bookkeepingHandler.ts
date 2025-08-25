@@ -14,19 +14,19 @@ function formatSummary(session: GroupSessionType): string {
   const payableFunds = funds.reduce((sum, tx) => sum + tx.value, 0);
   const payableUSDT = funds.reduce(
     (sum, tx) => sum + (tx.value * (1 - tx.fee / 100)) / tx.rate,
-    0,
+    0
   );
   const paidUSDT = usdt.reduce((sum, tx) => sum + tx.value, 0);
   const paidFunds = usdt.reduce(
     (sum, tx) => sum + (tx.value * tx.rate) / (1 - tx.fee / 100),
-    0,
+    0
   );
 
   const fundSummary = [...funds]
     .splice(-3)
     .map(
       (tx, i: number) =>
-        `(${i + 1}) ${tx.value} / ${tx.rate.toFixed(2)} = ${((tx.value * (1 - tx.fee / 100)) / tx.rate).toFixed(2)}`,
+        `(${i + 1}) ${tx.value} / ${tx.rate.toFixed(2)} = ${((tx.value * (1 - tx.fee / 100)) / tx.rate).toFixed(2)}`
     )
     .join("\n");
 
@@ -34,7 +34,7 @@ function formatSummary(session: GroupSessionType): string {
     .splice(-3)
     .map(
       (tx, i: number) =>
-        `(${i + 1}) ${tx.value} (${((tx.value * tx.rate) / (1 - tx.fee / 100)).toFixed(2)})`,
+        `(${i + 1}) ${tx.value} (${((tx.value * tx.rate) / (1 - tx.fee / 100)).toFixed(2)})`
     )
     .join("\n");
 
@@ -91,14 +91,14 @@ const formatFullBill = (session: GroupSessionType) => {
   const fundSummary = [...funds]
     .map(
       (tx, i: number) =>
-        `(${i + 1}) ${tx.value} / ${tx.rate.toFixed(2)} = ${((tx.value * (1 - tx.fee / 100)) / tx.rate).toFixed(2)}`,
+        `(${i + 1}) ${tx.value} / ${tx.rate.toFixed(2)} = ${((tx.value * (1 - tx.fee / 100)) / tx.rate).toFixed(2)}`
     )
     .join("\n");
 
   const usdtSummary = [...usdt]
     .map(
       (tx, i: number) =>
-        `(${i + 1}) ${tx.value} (${((tx.value * tx.rate) / (1 - tx.fee / 100)).toFixed(2)})`,
+        `(${i + 1}) ${tx.value} (${((tx.value * tx.rate) / (1 - tx.fee / 100)).toFixed(2)})`
     )
     .join("\n");
 
@@ -167,7 +167,7 @@ ${DISPLAY_OPERATOR[1]}
 ${DISPLAY_BILL[1]}
 ${CLEAR_BILL[1]}
 `,
-      { parse_mode: "Markdown" },
+      { parse_mode: "Markdown" }
     );
   } else {
     ctx.reply(
@@ -189,7 +189,7 @@ ${DISPLAY_OPERATOR[0]}
 ${DISPLAY_BILL[0]}
 ${CLEAR_BILL[0]}
 `,
-      { parse_mode: "Markdown" },
+      { parse_mode: "Markdown" }
     );
   }
 });
@@ -228,7 +228,7 @@ bot.hears(
     const language = session.language;
 
     const match = ctx.message.text.match(
-      new RegExp(`^(${SET_RATE[0]}|${SET_RATE[1]})\\+([\\d.]+)$`, "i"),
+      new RegExp(`^(${SET_RATE[0]}|${SET_RATE[1]})\\+([\\d.]+)$`, "i")
     );
     if (!match || !match[2]) {
       if (language === "zh") {
@@ -252,7 +252,7 @@ bot.hears(
     } else {
       ctx.reply(`Rate set to ${rate}.`);
     }
-  },
+  }
 );
 
 // Set fee command: e.g. Set fee+123 or 设置费用+123
@@ -265,7 +265,7 @@ bot.hears(
     const language = session.language;
 
     const match = ctx.message.text.match(
-      new RegExp(`^(${SET_FEE[0]}|${SET_FEE[1]})\\+([\\d.]+)$`, "i"),
+      new RegExp(`^(${SET_FEE[0]}|${SET_FEE[1]})\\+([\\d.]+)$`, "i")
     );
     if (!match || !match[2]) {
       if (language === "zh") {
@@ -289,7 +289,7 @@ bot.hears(
     } else {
       ctx.reply(`Fee set to ${fee}.`);
     }
-  },
+  }
 );
 
 //set operator
@@ -303,14 +303,14 @@ bot.hears(
 
     // Extract username from message
     const match = ctx.message.text.match(
-      new RegExp(`^(${SET_OPERATOR[0]}|${SET_OPERATOR[1]})\\+@([\\w_]+)$`, "i"),
+      new RegExp(`^(${SET_OPERATOR[0]}|${SET_OPERATOR[1]})\\+@([\\w_]+)$`, "i")
     );
     if (!match || !match[2]) {
       if (language === "zh") {
         return ctx.reply(`格式错误。请使用 ${SET_OPERATOR[1]}+@用户名`);
       } else {
         return ctx.reply(
-          `Invalid format. Please use ${SET_OPERATOR[0]}+@username`,
+          `Invalid format. Please use ${SET_OPERATOR[0]}+@username`
         );
       }
     }
@@ -332,14 +332,14 @@ bot.hears(
         ctx.reply(`Operator @${username} already exists.`);
       }
     }
-  },
+  }
 );
 
 //delete operator
 bot.hears(
   new RegExp(
     `^(${DELETE_OPERATOR[0]}|${DELETE_OPERATOR[1]})\\+@([\\w_]+)$`,
-    "i",
+    "i"
   ),
   async (ctx) => {
     const session = await isOperator(ctx);
@@ -351,15 +351,15 @@ bot.hears(
     const match = ctx.message.text.match(
       new RegExp(
         `^(${DELETE_OPERATOR[0]}|${DELETE_OPERATOR[1]})\\+@([\\w_]+)$`,
-        "i",
-      ),
+        "i"
+      )
     );
     if (!match || !match[2]) {
       if (language === "zh") {
         return ctx.reply(`格式错误。请使用 ${DELETE_OPERATOR[1]}+@用户名`);
       } else {
         return ctx.reply(
-          `Invalid format. Please use ${DELETE_OPERATOR[0]}+@username`,
+          `Invalid format. Please use ${DELETE_OPERATOR[0]}+@username`
         );
       }
     }
@@ -381,7 +381,7 @@ bot.hears(
         ctx.reply(`Operator @${username} does not exist.`);
       }
     }
-  },
+  }
 );
 
 //display operator
@@ -426,11 +426,11 @@ bot.hears(DISPLAY_BILL, async (ctx) => {
         [
           Markup.button.callback(
             language === "zh" ? "完整账单" : "Full bill",
-            "full_bill",
+            "full_bill"
           ),
         ],
       ]),
-    },
+    }
   );
 });
 
@@ -445,7 +445,7 @@ bot.action("full_bill", async (ctx) => {
       : `*Full bill:*\n${formatFullBill(session)}`,
     {
       parse_mode: "Markdown",
-    },
+    }
   );
 });
 
@@ -456,6 +456,7 @@ bot.hears(CLEAR_BILL, async (ctx) => {
 
   session.funds = [] as typeof session.funds;
   session.usdt = [] as typeof session.usdt;
+  session.address = [] as typeof session.address;
   await session.save?.();
 
   const language = session.language;
@@ -540,7 +541,7 @@ bot.hears(/^([+-]\d+(\.\d+)?|U[+-]\d+(\.\d+)?)$/i, async (ctx) => {
       [
         Markup.button.callback(
           language === "zh" ? "完整账单" : "Full bill",
-          "full_bill",
+          "full_bill"
         ),
       ],
     ]),
@@ -564,9 +565,49 @@ bot.hears(/^\d+(\.\d+)?\s*[\+\-]\s*\d+(\.\d+)?$/, async (ctx) => {
   }
 
   // Reply and quote the original message
+  ctx.reply(`${Number(result.toFixed(5))}`, {
+    reply_parameters: { message_id: ctx.message.message_id },
+  });
+});
+
+bot.hears(/^T[1-9A-HJ-NP-Za-km-z]{33}$/, async (ctx) => {
+  const session = await isOperator(ctx);
+  if (!session) return;
+
+  const trc20 = ctx.message.text.trim();
+  const sender = ctx.from?.username || "";
+
+  if (!Array.isArray(session.address))
+    session.address = [] as typeof session.address;
+
+  // Check if address already exists for this sender
+  let addressObj = session.address.find((item: any) => item.address === trc20);
+
+  if (!addressObj) {
+    addressObj = session.address.create({
+      address: trc20,
+      sender,
+      times: 1,
+    });
+    session.address.push(addressObj);
+    await session.save?.();
+  } else {
+    addressObj.times++;
+    addressObj.sender = sender;
+    session.address = session.address.map((item) =>
+      item.address === trc20 ? addressObj : item
+    ) as typeof session.address;
+    await session.save?.();
+  }
+
   ctx.reply(
-    `${Number(result.toFixed(5))}`,
-    { reply_parameters: { message_id: ctx.message.message_id } }
+    session.language === "zh"
+      ? `地址: \`${addressObj.address}\`\n验证次数: ${addressObj.times}\n发件人: ${addressObj.sender ? `@${addressObj.sender}` : ''}`
+      : `Address: \`${addressObj.address}\`\nVerification times: ${addressObj.times}\nSender: ${addressObj.sender ? `@${addressObj.sender}` : ''}`,
+    { 
+      parse_mode: "MarkdownV2",
+      reply_parameters: { message_id: ctx.message.message_id }
+    }
   );
 });
 
