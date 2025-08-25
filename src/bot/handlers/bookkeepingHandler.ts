@@ -547,4 +547,27 @@ bot.hears(/^([+-]\d+(\.\d+)?|U[+-]\d+(\.\d+)?)$/i, async (ctx) => {
   });
 });
 
+bot.hears(/^\d+(\.\d+)?\s*[\+\-]\s*\d+(\.\d+)?$/, async (ctx) => {
+  const text = ctx.message.text.replace(/\s+/g, "");
+  const match = text.match(/^(\d+(\.\d+)?)([\+\-])(\d+(\.\d+)?)$/);
+  if (!match) return;
+
+  const a = parseFloat(match[1]);
+  const op = match[3];
+  const b = parseFloat(match[4]);
+  let result: number;
+
+  if (op === "+") {
+    result = a + b;
+  } else {
+    result = a - b;
+  }
+
+  // Reply and quote the original message
+  ctx.reply(
+    `${Number(result.toFixed(5))}`,
+    { reply_parameters: { message_id: ctx.message.message_id } }
+  );
+});
+
 export default bot;
