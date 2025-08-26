@@ -56,7 +56,7 @@ ${usdt.length > 3 ? "...\n" : ""}
 -------------------
 应下发: ${payableFunds.toFixed(2)} | ${payableUSDT.toFixed(2)} U
 已下发: ${paidFunds.toFixed(2)} | ${paidUSDT.toFixed(2)} U
-未下付: ${(paidFunds - payableFunds).toFixed(2)} | ${(paidUSDT - payableUSDT).toFixed(2)} U
+未下发: ${(paidFunds - payableFunds).toFixed(2)} | ${(paidUSDT - payableUSDT).toFixed(2)} U
 `.trim();
   } else {
     return `
