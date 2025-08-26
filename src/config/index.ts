@@ -30,8 +30,8 @@ const commands = {
   SET_OPERATOR: ["Set operator", "设置操作人"],
   DELETE_OPERATOR: ["Delete operator", "删除操作人"],
   DISPLAY_OPERATOR: ["Display operators", "显示操作人"],
-  DISPLAY_BILL: ["Display bill", "显示账单"],
-  CLEAR_BILL: ["Clear bill", "清除账单"],
+  DISPLAY_BILL: ["Display bill", "显示账单","z0"],
+  CLEAR_BILL: ["Clear bill", "清除账单","Q0"],
   CANCEL_DEPOSIT: ["Cancel deposit", "删除上一条账单"],
 };
 interface Config {

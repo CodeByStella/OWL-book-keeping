@@ -54,9 +54,9 @@ ${usdt.length > 3 ? "...\n" : ""}
 汇率: ${rate.toFixed(2)}
 费用: ${fee.toFixed(2)}
 -------------------
-应付: ${payableFunds.toFixed(2)} | ${payableUSDT.toFixed(2)} U
-已付: ${paidFunds.toFixed(2)} | ${paidUSDT.toFixed(2)} U
-未付: ${(paidFunds - payableFunds).toFixed(2)} | ${(paidUSDT - payableUSDT).toFixed(2)} U
+应下发: ${payableFunds.toFixed(2)} | ${payableUSDT.toFixed(2)} U
+已下发: ${paidFunds.toFixed(2)} | ${paidUSDT.toFixed(2)} U
+未下付: ${(paidFunds - payableFunds).toFixed(2)} | ${(paidUSDT - payableUSDT).toFixed(2)} U
 `.trim();
   } else {
     return `
@@ -474,7 +474,7 @@ bot.hears(CLEAR_BILL, async (ctx) => {
   }
 });
 
-bot.hears(/^([+-]\d+(\.\d+)?|U[+-]\d+(\.\d+)?)$/i, async (ctx) => {
+bot.hears(/^([+-]\d+(\.\d+)?|U[+-]\d+(\.\d+)?|下发\d+(\.\d+)?)$/i, async (ctx) => {
   const session = await isOperator(ctx);
   if (!session) return;
 
@@ -484,19 +484,26 @@ bot.hears(/^([+-]\d+(\.\d+)?|U[+-]\d+(\.\d+)?)$/i, async (ctx) => {
   let type: "funds" | "usdt" | null = null;
   let amount: number | null = null;
 
-  // Match for USDT: U+123 or U-123
-  const usdtMatch = text.match(/^U([+-])(\d+(\.\d+)?)$/i);
-  if (usdtMatch) {
+  // Match for Chinese USDT income: 下发123 (equivalent to U+123)
+  const cnUsdtIncomeMatch = text.match(/^下发(\d+(\.\d+)?)$/);
+  if (cnUsdtIncomeMatch) {
     type = "usdt";
-    amount = parseFloat(usdtMatch[2]);
-    if (usdtMatch[1] === "-") amount = -amount;
+    amount = parseFloat(cnUsdtIncomeMatch[1]);
   } else {
-    // Match for funds: +123 or -123
-    const fundsMatch = text.match(/^([+-])(\d+(\.\d+)?)$/);
-    if (fundsMatch) {
-      type = "funds";
-      amount = parseFloat(fundsMatch[2]);
-      if (fundsMatch[1] === "-") amount = -amount;
+    // Match for USDT: U+123 or U-123
+    const usdtMatch = text.match(/^U([+-])(\d+(\.\d+)?)$/i);
+    if (usdtMatch) {
+      type = "usdt";
+      amount = parseFloat(usdtMatch[2]);
+      if (usdtMatch[1] === "-") amount = -amount;
+    } else {
+      // Match for funds: +123 or -123
+      const fundsMatch = text.match(/^([+-])(\d+(\.\d+)?)$/);
+      if (fundsMatch) {
+        type = "funds";
+        amount = parseFloat(fundsMatch[2]);
+        if (fundsMatch[1] === "-") amount = -amount;
+      }
     }
   }
 
