@@ -13,6 +13,7 @@ const {
   SET_CHINESE,
   SET_ENGLISH,
   SET_FEE,
+  CANCEL_DEPOSIT
 } = config.COMMANDS;
 
 const groupHandler: MiddlewareFn<Context> = async (ctx, next) => {
@@ -50,6 +51,7 @@ ${SET_CHINESE[0]}
 - Record funds expense
 U+ Record USDT income
 U- Record USDT expense
+${CANCEL_DEPOSIT[0]}
 ${SET_RATE[0]}+(0.00）
 ${SET_FEE[0]}+(0.00）
 ${SET_OPERATOR[0]}+@xxx
@@ -66,6 +68,7 @@ ${SET_ENGLISH[1]}
 - 记录资金支出
 U+ 记录 USDT 收入
 U- 记录 USDT 支出
+${CANCEL_DEPOSIT[1]}
 ${SET_RATE[1]}+(0.00）
 ${SET_FEE[1]}+(0.00）
 ${SET_OPERATOR[1]}+@xxx

@@ -32,6 +32,7 @@ const commands = {
   DISPLAY_OPERATOR: ["Display operators", "显示操作人"],
   DISPLAY_BILL: ["Display bill", "显示账单"],
   CLEAR_BILL: ["Clear bill", "清除账单"],
+  CANCEL_DEPOSIT: ["Cancel deposit", "删除上一条账单"],
 };
 interface Config {
   BOT_TOKEN: string;

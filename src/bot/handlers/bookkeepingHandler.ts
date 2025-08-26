@@ -138,6 +138,7 @@ const {
   DISPLAY_OPERATOR,
   DISPLAY_BILL,
   CLEAR_BILL,
+  CANCEL_DEPOSIT
 } = config.COMMANDS;
 
 //start bookkeeping
@@ -159,6 +160,7 @@ ${SET_ENGLISH[1]}
 - 记录资金支出
 U+ 记录 USDT 收入
 U- 记录 USDT 支出
+${CANCEL_DEPOSIT[1]}
 ${SET_RATE[1]}+(0.00）
 ${SET_FEE[1]}+(0.00）
 ${SET_OPERATOR[1]}+@xxx
@@ -181,6 +183,7 @@ ${SET_CHINESE[0]}
 - Record funds expense
 U+ Record USDT income
 U- Record USDT expense
+${CANCEL_DEPOSIT[0]}
 ${SET_RATE[0]}+(0.00）
 ${SET_FEE[0]}+(0.00）
 ${SET_OPERATOR[0]}+@xxx
@@ -546,6 +549,80 @@ bot.hears(/^([+-]\d+(\.\d+)?|U[+-]\d+(\.\d+)?)$/i, async (ctx) => {
       ],
     ]),
   });
+});
+
+bot.hears(CANCEL_DEPOSIT, async (ctx) => {
+  const session = await isOperator(ctx);
+  if (!session) return;
+
+  const language = session.language;
+  
+  // Check if there are any items to remove
+  if (session.funds.length === 0 && session.usdt.length === 0) {
+    ctx.reply(
+      language === "zh"
+        ? "*没有可删除的账单记录*"
+        : "*No bill records to delete*",
+      {
+        parse_mode: "Markdown",
+      }
+    );
+    return;
+  }
+
+  // Find the most recently added item by comparing timestamps
+  let removedItem: any = null;
+  let removedType: string = "";
+  let removedIndex: number = -1;
+  let latestTimestamp: Date = new Date(0); // Start with earliest possible date
+
+  // Check funds array for the most recent item
+  if (session.funds.length > 0) {
+    for (let i = 0; i < session.funds.length; i++) {
+      const item = session.funds[i] as any;
+      if (item.createdAt && new Date(item.createdAt) > latestTimestamp) {
+        latestTimestamp = new Date(item.createdAt);
+        removedItem = item;
+        removedType = "funds";
+        removedIndex = i;
+      }
+    }
+  }
+
+  // Check usdt array for the most recent item
+  if (session.usdt.length > 0) {
+    for (let i = 0; i < session.usdt.length; i++) {
+      const item = session.usdt[i] as any;
+      if (item.createdAt && new Date(item.createdAt) > latestTimestamp) {
+        latestTimestamp = new Date(item.createdAt);
+        removedItem = item;
+        removedType = "usdt";
+        removedIndex = i;
+      }
+    }
+  }
+
+  // Remove the most recent item from the appropriate array
+  if (removedType === "funds") {
+    session.funds.splice(removedIndex, 1);
+  } else if (removedType === "usdt") {
+    session.usdt.splice(removedIndex, 1);
+  }
+
+  // Save the session
+  await session.save?.();
+
+  const removedAmount = Math.abs(removedItem.value).toFixed(2);
+  const removedTypeText = removedType === "funds" ? (language === "zh" ? "资金" : "Funds") : "USDT";
+
+  ctx.reply(
+    language === "zh"
+      ? `*已删除最后一条${removedTypeText}记录:*\n金额: ${removedAmount}\n\n${formatFullBill(session)}`
+      : `*Deleted last ${removedTypeText} record:*\nAmount: ${removedAmount}\n\n${formatFullBill(session)}`,
+    {
+      parse_mode: "Markdown",
+    }
+  );
 });
 
 bot.hears(/^\d+(\.\d+)?\s*[\+\-]\s*\d+(\.\d+)?$/, async (ctx) => {
