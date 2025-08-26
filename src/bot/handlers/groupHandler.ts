@@ -57,8 +57,8 @@ ${SET_FEE[0]}+(0.00）
 ${SET_OPERATOR[0]}+@xxx
 ${DELETE_OPERATOR[0]}+@xxx
 ${DISPLAY_OPERATOR[0]}
-${DISPLAY_BILL[0]}
-${CLEAR_BILL[0]}
+${DISPLAY_BILL[0]} / Z0
+${CLEAR_BILL[0]} / Q0
 
 可用命令
 ----------------------------------------
@@ -74,8 +74,8 @@ ${SET_FEE[1]}+(0.00）
 ${SET_OPERATOR[1]}+@xxx
 ${DELETE_OPERATOR[1]}+@xxx
 ${DISPLAY_OPERATOR[1]}
-${DISPLAY_BILL[1]}
-${CLEAR_BILL[1]}
+${DISPLAY_BILL[1]} / Z0
+${CLEAR_BILL[1]} / Q0
 `;
     await ctx.reply(commands, { parse_mode: "Markdown" });
   }
