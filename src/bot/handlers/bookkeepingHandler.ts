@@ -459,7 +459,7 @@ bot.hears(CLEAR_BILL, async (ctx) => {
 
   session.funds = [] as typeof session.funds;
   session.usdt = [] as typeof session.usdt;
-  session.address = [] as typeof session.address;
+  // session.address = [] as typeof session.address;
   await session.save?.();
 
   const language = session.language;
