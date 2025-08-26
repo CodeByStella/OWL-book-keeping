@@ -154,7 +154,7 @@ bot.hears(START_BOOK_KEEPING, async (ctx) => {
 
 可用命令
 ----------------------------------------
-${START_BOOK_KEEPING[1]}
+${START_BOOK_KEEPING[1]} / Z2
 ${SET_ENGLISH[1]}
 + 记录资金收入
 - 记录资金支出
@@ -177,7 +177,7 @@ ${CLEAR_BILL[1]} / Q0
 
 Available commands
 ----------------------------------------
-${START_BOOK_KEEPING[0]}
+${START_BOOK_KEEPING[0]} / Z2
 ${SET_CHINESE[0]}
 + Record funds income
 - Record funds expense

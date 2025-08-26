@@ -44,7 +44,7 @@ const groupHandler: MiddlewareFn<Context> = async (ctx, next) => {
 
     const commands = `*Available commands*
 ----------------------------------------
-${START_BOOK_KEEPING[0]}
+${START_BOOK_KEEPING[0]} / Z2
 ${SET_ENGLISH[0]}
 ${SET_CHINESE[0]}
 + Record funds income
@@ -62,7 +62,7 @@ ${CLEAR_BILL[0]} / Q0
 
 可用命令
 ----------------------------------------
-${START_BOOK_KEEPING[1]}
+${START_BOOK_KEEPING[1]} / Z2
 ${SET_ENGLISH[1]}
 + 记录资金收入
 - 记录资金支出
