@@ -39,7 +39,7 @@ const GroupSessionSchema = new Schema({
   language: {
     type: String,
     enum: ["en", "zh"],
-    default: "en",
+    default: "zh",
   },
   address: { type: [AddressSchema], default: [] },
 });
